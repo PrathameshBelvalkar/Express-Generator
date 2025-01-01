@@ -32,3 +32,5 @@ coverage/
 
 # Extensions
 .vscode-test/
+
+*.vsix
