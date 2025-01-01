@@ -13,12 +13,20 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         try {
-            // Create directories
             const directories = [
                 'src/config', 'src/controllers', 'src/middlewares', 'src/models', 'src/routes', 'src/services', 'src/utils', 'src/views',
                 'public/css', 'public/js', 'public/images'
             ];
 
+            // Check if all directories already exist
+            const allDirectoriesExist = directories.every(dir => existsSync(join(folderPath, dir)));
+
+            if (allDirectoriesExist) {
+                vscode.window.showWarningMessage('All required folders already exist. No changes made.');
+                return;
+            }
+
+            // Create directories
             directories.forEach(dir => {
                 const dirPath = join(folderPath, dir);
                 if (!existsSync(dirPath)) {
@@ -26,7 +34,6 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             });
 
-            // Create files
             const files = [
                 'src/config/database.js', 'src/config/dotenv.js',
                 'src/controllers/userController.js', 'src/controllers/authController.js',
@@ -45,7 +52,6 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             });
 
-            // Add content to src/routes/index.js
             const indexContent = `import { Router } from 'express';
 const router = Router();
 
@@ -58,7 +64,6 @@ export default router;
 `;
             writeFileSync(join(folderPath, 'src/routes/index.js'), indexContent);
 
-            // Add content to src/app.js
             const appContent = `import express from 'express';
 import indexRoutes from './routes/index.js';
 
@@ -74,7 +79,6 @@ export default app;
 `;
             writeFileSync(join(folderPath, 'src/app.js'), appContent);
 
-            // Add content to src/server.js
             const serverContent = `import app from './app.js';
 
 const PORT = process.env.PORT || 3000;
@@ -85,7 +89,28 @@ app.listen(PORT, () => {
 `;
             writeFileSync(join(folderPath, 'src/server.js'), serverContent);
 
-            // Run commands to initialize the project
+            const envContent = `# Environment Variables
+PORT=3000
+DATABASE_URL=
+SECRET_KEY=
+`;
+            writeFileSync(join(folderPath, '.env'), envContent);
+
+            const gitignoreContent = `# Node modules
+node_modules/
+
+# Environment files
+.env
+
+# Logs
+logs/
+*.log
+
+# Build files
+dist/
+`;
+            writeFileSync(join(folderPath, '.gitignore'), gitignoreContent);
+
             exec('npm init -y', { cwd: folderPath }, (err, stdout) => {
                 if (err) {
                     vscode.window.showErrorMessage('Error initializing npm project.');
@@ -93,7 +118,6 @@ app.listen(PORT, () => {
                 }
                 console.log(stdout);
 
-                // Modify package.json to include type: module and scripts
                 const packageJsonPath = join(folderPath, 'package.json');
                 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
                 packageJson.type = 'module'; // Add "type": "module"
@@ -102,7 +126,6 @@ app.listen(PORT, () => {
                 packageJson.scripts.dev = 'nodemon src/server.js';
                 writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
-                // Install dependencies
                 exec('npm install express', { cwd: folderPath }, (err, stdout) => {
                     if (err) {
                         vscode.window.showErrorMessage('Error installing express.');
@@ -110,7 +133,6 @@ app.listen(PORT, () => {
                     }
                     console.log(stdout);
 
-                    // Install dev dependencies (nodemon)
                     exec('npm install --save-dev nodemon', { cwd: folderPath }, (err, stdout) => {
                         if (err) {
                             vscode.window.showErrorMessage('Error installing nodemon.');
